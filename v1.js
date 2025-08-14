@@ -175,7 +175,7 @@
         }
 
         .n8n-chat-widget .chat-message.user {
-            background: linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%);
+            background: var(--n8n-chat-user-color, linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%));
             color: white;
             align-self: flex-end;
             box-shadow: 0 4px 12px rgba(133, 79, 255, 0.2);
@@ -183,7 +183,7 @@
         }
 
         .n8n-chat-widget .chat-message.bot {
-            background: var(--chat--color-background);
+            background: var(--n8n-chat-bot-color, var(--chat--color-background));
             border: 1px solid rgba(133, 79, 255, 0.2);
             color: var(--chat--color-font);
             align-self: flex-start;
@@ -353,6 +353,14 @@
     widgetContainer.style.setProperty('--n8n-chat-secondary-color', config.style.secondaryColor);
     widgetContainer.style.setProperty('--n8n-chat-background-color', config.style.backgroundColor);
     widgetContainer.style.setProperty('--n8n-chat-font-color', config.style.fontColor);
+
+    if (config.style.botMessageColor) {
+    widgetContainer.style.setProperty('--n8n-chat-bot-color', config.style.botMessageColor);
+    }
+    if (config.style.userMessageColor) {
+        widgetContainer.style.setProperty('--n8n-chat-user-color', config.style.userMessageColor);
+    }
+
 
     const chatContainer = document.createElement('div');
     chatContainer.className = `chat-container${config.style.position === 'left' ? ' position-left' : ''}`;
