@@ -441,6 +441,16 @@
         chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
 
+            // Show welcome text as bot message
+    if (config.branding.welcomeText) {
+        const botMessageDiv = document.createElement('div');
+        botMessageDiv.className = 'chat-message bot';
+        botMessageDiv.textContent = config.branding.welcomeText;
+        messagesContainer.appendChild(botMessageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+
         // Show typing while loading the initial message (if backend returns one)
         const typing = showTypingIndicator();
 
