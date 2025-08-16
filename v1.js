@@ -147,7 +147,7 @@
             max-width: 80%;
             word-wrap: break-word;
             font-size: 14px;
-            line-height: 0.75rem; /* biar teks nggak ada spasi berlebih */
+            line-height: 1rem; /* biar teks nggak ada spasi berlebih */
             animation: msgIn 180ms ease-out both;
         }
 
