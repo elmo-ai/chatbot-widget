@@ -199,6 +199,8 @@
             border: none;
             border-radius: 8px;
             padding: 0 20px;
+            width: 44px;
+            height: 44px;
             cursor: pointer;
             transition: transform 0.2s;
             font-family: inherit;
@@ -206,6 +208,10 @@
         }
         .n8n-chat-widget .chat-input button:hover {
             transform: scale(1.05);
+        }
+        .n8n-chat-widget .chat-input button svg {
+            width: 20px;
+            height: 20px;
         }
         .n8n-chat-widget .chat-toggle {
             position: fixed;
