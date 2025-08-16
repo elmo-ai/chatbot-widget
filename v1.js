@@ -42,7 +42,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            border-bottom: 1px solid rgba(133, 79, 255, 0.1);
+            border-bottom: 3px solid rgba(133, 79, 255, 0.1);
             position: relative;
         }
         .n8n-chat-widget .close-button {
@@ -147,7 +147,7 @@
             max-width: 80%;
             word-wrap: break-word;
             font-size: 14px;
-            line-height: 1rem; /* biar teks nggak ada spasi berlebih */
+            line-height: 1.25rem; /* biar teks nggak ada spasi berlebih */
             animation: msgIn 180ms ease-out both;
         }
 
@@ -172,7 +172,7 @@
         .n8n-chat-widget .chat-input {
             padding: 16px;
             background: var(--chat--color-background);
-            border-top: 1px solid rgba(133, 79, 255, 0.1);
+            border-top: 3px solid rgba(133, 79, 255, 0.1);
             display: flex;
             gap: 8px;
         }
