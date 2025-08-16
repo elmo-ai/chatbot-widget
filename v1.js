@@ -142,12 +142,8 @@
         }
         .n8n-chat-widget .chat-message {
             padding: 6px 14px; /* lebih rapat */
-            margin: 6px 0;
-            border-radius: 12px;
-            max-width: 80%;
-            word-wrap: break-word;
-            font-size: 14px;
-            line-height: 1.2; /* biar teks nggak ada spasi berlebih */
+            margin: 8px 0;
+            line-height: 0.75rem; /* biar teks nggak ada spasi berlebih */
             animation: msgIn 180ms ease-out both;
         }
 
