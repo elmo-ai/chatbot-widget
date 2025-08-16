@@ -141,7 +141,7 @@
             flex-direction: column;
         }
         .n8n-chat-widget .chat-message {
-            padding: 6px 14px; /* lebih rapat */
+            padding: 10px 14px; /* lebih rapat */
             margin: 8px 0;
             border-radius: 12px;
             max-width: 80%;
