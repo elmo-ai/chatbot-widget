@@ -209,10 +209,19 @@
         .n8n-chat-widget .chat-input button:hover {
             transform: scale(1.05);
         }
-        .n8n-chat-widget .chat-input button svg {
-            width: 20px;
-            height: 20px;
+        .n8n-chat-widget .chat-input .send-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        width: 44px;
+        height: 44px;
         }
+    .n8n-chat-widget .chat-input .send-btn svg {
+        width: 20px;
+        height: 20px;
+        }
+
         .n8n-chat-widget .chat-toggle {
             position: fixed;
             bottom: 20px;
