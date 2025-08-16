@@ -141,15 +141,16 @@
             flex-direction: column;
         }
         .n8n-chat-widget .chat-message {
-            padding: 12px 16px;
-            margin: 8px 0;
+            padding: 6px 14px; /* lebih rapat */
+            margin: 6px 0;
             border-radius: 12px;
             max-width: 80%;
             word-wrap: break-word;
             font-size: 14px;
-            line-height: 1.5;
+            line-height: 1.2; /* biar teks nggak ada spasi berlebih */
             animation: msgIn 180ms ease-out both;
         }
+
         @keyframes msgIn {
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
