@@ -31,18 +31,24 @@
         .n8n-chat-widget .chat-container.open {
             display: flex;
             flex-direction: column;
-            animation: chatPopIn 180ms ease-out both;
+            animation: chatPopIn 250ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
         @keyframes chatPopIn {
-            from { opacity: 0; transform: translateY(8px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
+            from { 
+                opacity: 0; 
+                transform: translateY(12px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
         }
         .n8n-chat-widget .brand-header {
             padding: 16px;
             display: flex;
             align-items: center;
             gap: 12px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
             position: relative;
         }
         
@@ -52,8 +58,8 @@
             height: 8px;
             border-radius: 50%;
             background: #22c55e; /* green by default */
-            margin-left: 4px;
-            transition: background-color 0.3s;
+            margin-left: 8px;
+            transition: background-color 0.3s ease;
         }
         .n8n-chat-widget .status-dot.offline {
             background: #ef4444; /* red for offline */
@@ -155,6 +161,7 @@
         }
         .n8n-chat-widget .new-chat-btn:hover {
             transform: scale(1.02);
+            box-shadow: 0 6px 20px rgba(133, 79, 255, 0.3);
         }
         .n8n-chat-widget .message-icon {
             width: 20px;
@@ -182,6 +189,26 @@
             display: flex;
             flex-direction: column;
         }
+        
+        /* NEW: Custom thin scrollbar */
+        .n8n-chat-widget .chat-messages::-webkit-scrollbar {
+            width: 3px;
+        }
+        .n8n-chat-widget .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .n8n-chat-widget .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(133, 79, 255, 0.3);
+            border-radius: 3px;
+        }
+        .n8n-chat-widget .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(133, 79, 255, 0.5);
+        }
+        /* Firefox scrollbar */
+        .n8n-chat-widget .chat-messages {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(133, 79, 255, 0.3) transparent;
+        }
         .n8n-chat-widget .chat-message {
             padding: 10px 14px;
             margin: 8px 0;
@@ -190,12 +217,18 @@
             word-wrap: break-word;
             font-size: 14px;
             line-height: 1.25rem;
-            animation: msgIn 180ms ease-out both;
+            animation: msgIn 200ms cubic-bezier(0.34, 1.26, 0.64, 1) both;
         }
 
         @keyframes msgIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { 
+                opacity: 0; 
+                transform: translateY(8px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
         }
         .n8n-chat-widget .chat-message.user {
             background: var(--n8n-chat-user-color, linear-gradient(135deg, var(--chat--color-primary) 0%, var(--chat--color-secondary) 100%));
@@ -214,14 +247,14 @@
         .n8n-chat-widget .chat-input {
             padding: 16px;
             background: var(--chat--color-background);
-            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            border-top: 2px solid rgba(255, 255, 255, 0.1);
             display: flex;
             gap: 8px;
         }
         .n8n-chat-widget .chat-input textarea {
             flex: 1;
             padding: 12px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             background: var(--chat--color-background);
             color: var(--chat--color-font);
@@ -230,6 +263,12 @@
             font-size: 14px;
             max-height: 140px;
             overflow-y: hidden;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .n8n-chat-widget .chat-input textarea:focus {
+            outline: none;
+            border-color: rgba(133, 79, 255, 0.5);
+            box-shadow: 0 0 0 2px rgba(133, 79, 255, 0.1);
         }
         .n8n-chat-widget .chat-input textarea::placeholder {
             color: var(--chat--color-font);
@@ -250,6 +289,7 @@
         }
         .n8n-chat-widget .chat-input button:hover {
             transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(133, 79, 255, 0.3);
         }
         .n8n-chat-widget .chat-input .send-btn {
             display: flex;
@@ -288,6 +328,7 @@
         }
         .n8n-chat-widget .chat-toggle:hover {
             transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(133, 79, 255, 0.4);
         }
         .n8n-chat-widget .chat-toggle svg {
             width: 24px;
@@ -495,7 +536,7 @@
                 <div class="status-dot" id="statusDot"></div>
             </div>
             <div class="header-controls">
-                <button class="fullscreen-toggle" id="fullscreenToggle">⇱</button>
+                <button class="fullscreen-toggle" id="fullscreenToggle">⛶</button>
                 <button class="close-button">×</button>
             </div>
         </div>
@@ -520,7 +561,7 @@
                     <div class="status-dot" id="statusDotChat"></div>
                 </div>
                 <div class="header-controls">
-                    <button class="fullscreen-toggle" id="fullscreenToggleChat">⇱</button>
+                    <button class="fullscreen-toggle" id="fullscreenToggleChat">⛶</button>
                     <button class="close-button">×</button>
                 </div>
             </div>
@@ -728,7 +769,9 @@
         const toggleBtns = [document.getElementById('fullscreenToggle'), document.getElementById('fullscreenToggleChat')];
         toggleBtns.forEach(btn => {
             if (btn) {
-                btn.textContent = chatContainer.classList.contains('mobile-fullscreen') ? '⛶' : '⇱';
+                // ⛶ = go to fullscreen (expand outward)
+                // ⛷ = exit fullscreen (contract inward) 
+                btn.textContent = chatContainer.classList.contains('mobile-fullscreen') ? '⛷' : '⛶';
             }
         });
     }
