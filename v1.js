@@ -1,21 +1,4 @@
-<!-- oricode2.js -->
 <script>
-/**
- * oricode2 — Chat Widget Script
- * Changes:
- * 1) No auto-fetch on open (fetch only after first user message)
- * 2) Removed purple glow; cleaner neutral look
- * 3) Mobile fullscreen toggle beside (X)
- * 4) LocalStorage persistence (JSON), last 50 messages, versioned key
- * 5) Persistent nickname (asked once), greet on return
- * 6) Timestamps under each message
- * 7) Feedback (👍/👎) under bot replies
- * 8) Desktop shortcuts (Enter=send, Shift+Enter=newline)
- * 9) Unread indicator (red dot) on widget button when minimized & new bot msg arrives
- * 10) Status dot beside name (🟢 online / 🔴 offline on fetch error)
- * 11) Keeps existing typing indicator
- */
-
 (function () {
   const STORAGE_KEY = 'oricode2-v1';
   const NAME_KEY = 'oricode2-username';
