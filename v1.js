@@ -68,7 +68,7 @@
             cursor: pointer;
             padding: 4px;
             margin-right: 8px;
-            font-size: 18px;
+            font-size: 16px;
             opacity: 0.8;
             transition: opacity 0.2s;
         }
@@ -281,7 +281,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
         .n8n-chat-widget .chat-toggle.position-left {
             right: auto;
@@ -350,22 +349,32 @@
         /* Mobile view improvements */
         @media (max-width: 480px) {
             .n8n-chat-widget .chat-container {
-                width: 100%;
-                height: 100%;
-                bottom: 0;
-                right: 0;
-                border-radius: 0;
-            }
-            .n8n-chat-widget .chat-container.mobile-windowed {
                 width: 90%;
                 height: 80%;
                 bottom: 5%;
                 right: 5%;
+                left: 5%;
                 border-radius: 12px;
+            }
+            .n8n-chat-widget .chat-container.position-left {
+                right: 5%;
+                left: 5%;
+            }
+            .n8n-chat-widget .chat-container.mobile-fullscreen {
+                width: 100%;
+                height: 100%;
+                bottom: 0;
+                right: 0;
+                left: 0;
+                border-radius: 0;
             }
             .n8n-chat-widget .chat-toggle {
                 bottom: 16px;
                 right: 16px;
+            }
+            .n8n-chat-widget .chat-toggle.position-left {
+                right: auto;
+                left: 16px;
             }
             /* Show fullscreen toggle only on mobile */
             .n8n-chat-widget .fullscreen-toggle {
@@ -486,7 +495,7 @@
                 <div class="status-dot" id="statusDot"></div>
             </div>
             <div class="header-controls">
-                <button class="fullscreen-toggle" id="fullscreenToggle">⛶</button>
+                <button class="fullscreen-toggle" id="fullscreenToggle">⇱</button>
                 <button class="close-button">×</button>
             </div>
         </div>
@@ -511,7 +520,7 @@
                     <div class="status-dot" id="statusDotChat"></div>
                 </div>
                 <div class="header-controls">
-                    <button class="fullscreen-toggle" id="fullscreenToggleChat">⛶</button>
+                    <button class="fullscreen-toggle" id="fullscreenToggleChat">⇱</button>
                     <button class="close-button">×</button>
                 </div>
             </div>
@@ -715,11 +724,11 @@
 
     // NEW: Mobile fullscreen toggle
     function toggleMobileFullscreen() {
-        chatContainer.classList.toggle('mobile-windowed');
+        chatContainer.classList.toggle('mobile-fullscreen');
         const toggleBtns = [document.getElementById('fullscreenToggle'), document.getElementById('fullscreenToggleChat')];
         toggleBtns.forEach(btn => {
             if (btn) {
-                btn.textContent = chatContainer.classList.contains('mobile-windowed') ? '⛶' : '⇱';
+                btn.textContent = chatContainer.classList.contains('mobile-fullscreen') ? '⛶' : '⇱';
             }
         });
     }
