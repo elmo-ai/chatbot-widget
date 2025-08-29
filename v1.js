@@ -739,56 +739,65 @@
             const data = await response.json();
             typingIndicator.remove();
             
-            // Debug logging - will be visible in browser console
+            // Debug logging
             console.log('Webhook response:', data);
             console.log('Response type:', typeof data);
             console.log('Is array:', Array.isArray(data));
             
-            // FIXED: Comprehensive response handling for n8n webhooks
+            // IMPROVED: Enhanced response handling for n8n webhooks
             let botResponse = '';
             
-            // Handle different n8n response formats
-            if (Array.isArray(data)) {
-                if (data.length > 0) {
-                    const firstItem = data[0];
-                    // Try multiple possible fields that n8n might use
-                    botResponse = firstItem?.output || 
-                                firstItem?.text || 
-                                firstItem?.message || 
-                                firstItem?.response || 
-                                firstItem?.reply || 
-                                firstItem?.content ||
-                                firstItem?.body?.output ||
-                                firstItem?.body?.text ||
-                                firstItem?.body?.message ||
-                                (typeof firstItem === 'string' ? firstItem : '') ||
-                                'Maaf, tidak ada respons.';
-                } else {
-                    botResponse = 'Maaf, tidak ada respons.';
+            // Function to extract response from various possible structures
+            function extractResponse(item) {
+                if (typeof item === 'string' && item.trim()) {
+                    return item.trim();
                 }
-            } else if (typeof data === 'object' && data !== null) {
-                // Handle object responses
-                botResponse = data.output || 
-                            data.text || 
-                            data.message || 
-                            data.response || 
-                            data.reply || 
-                            data.content ||
-                            data.body?.output ||
-                            data.body?.text ||
-                            data.body?.message ||
-                            'Maaf, terjadi kesalahan dalam memproses respons.';
-            } else if (typeof data === 'string') {
-                botResponse = data;
-            } else {
-                console.warn('Unexpected response format:', data);
-                botResponse = 'Maaf, format respons tidak dikenali.';
+                if (typeof item === 'object' && item !== null) {
+                    return item.output || 
+                           item.text || 
+                           item.message || 
+                           item.response || 
+                           item.reply || 
+                           item.content ||
+                           item.body?.output ||
+                           item.body?.text ||
+                           item.body?.message ||
+                           '';
+                }
+                return '';
             }
             
-            // Additional check if response is empty or just whitespace
+            if (Array.isArray(data)) {
+                // Direct array response
+                if (data.length > 0) {
+                    botResponse = extractResponse(data[0]);
+                }
+            } else if (typeof data === 'object' && data !== null) {
+                // Check if it's a wrapper object with data array
+                if (data.data && Array.isArray(data.data)) {
+                    if (data.data.length > 0) {
+                        botResponse = extractResponse(data.data[0]);
+                    }
+                } else {
+                    // Direct object response
+                    botResponse = extractResponse(data);
+                }
+            } else if (typeof data === 'string') {
+                botResponse = data.trim();
+            }
+            
+            // Fallback if no response found
             if (!botResponse || botResponse.trim() === '') {
-                console.warn('Empty response received');
-                botResponse = 'Maaf, respons kosong dari server.';
+                console.warn('Empty or invalid response received:', data);
+                // For the first message specifically, don't show an error if it's just an empty data array
+                // This might be expected behavior for session initialization
+                if (!firstMessageSent && data.data && Array.isArray(data.data) && data.data.length === 0) {
+                    // Skip creating a bot message for empty initialization response
+                    console.log('Skipping empty initialization response');
+                    return;
+                } else {
+                    botResponse = 'Maaf, tidak ada respons dari server.';
+                }
             }
 
             // Only create bot message if there's actual content
