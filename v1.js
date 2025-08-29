@@ -382,7 +382,7 @@
             40% { opacity: 1; }
         }
         
-        /* Mobile responsive */
+        /* Mobile responsive - FIXED: Fullscreen button positioning */
         @media (max-width: 480px) {
             .n8n-chat-widget .chat-container {
                 width: 90%;
@@ -414,6 +414,14 @@
             }
             .n8n-chat-widget .fullscreen-toggle {
                 display: block;
+            }
+            
+            /* FIXED: Keep header controls properly positioned in fullscreen */
+            .n8n-chat-widget .chat-container.mobile-fullscreen .header-controls {
+                position: absolute;
+                right: 16px;
+                top: 50%;
+                transform: translateY(-50%);
             }
         }
     `;
@@ -656,7 +664,7 @@
         }
     }
 
-    // FIXED: Start conversation without showing welcome message twice
+    // FIXED: Start conversation with proper welcome message flow
     async function startNewConversation() {
         if (!currentSessionId) {
             currentSessionId = generateUUID();
@@ -666,10 +674,20 @@
         chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
 
-        // Don't show welcome message here - it will be shown only after first user message
+        // Show the welcome message immediately when starting new conversation
+        const welcomeMessage = config.branding.welcomeText;
+        if (welcomeMessage) {
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.textContent = welcomeMessage;
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            updateUnreadCounter();
+            saveToStorage();
+        }
     }
 
-    // FIXED: Proper message handling
+    // FIXED: Proper message handling with better error handling
     async function sendMessage(message) {
         const trimmed = message.trim();
         if (!trimmed) return;
@@ -714,15 +732,23 @@
                 body: JSON.stringify(messageData)
             });
             
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
             typingIndicator.remove();
             
-            // FIXED: Better response handling
+            // FIXED: Better response handling with fallback
             let botResponse = '';
             if (Array.isArray(data)) {
-                botResponse = data[0]?.output || 'Maaf, terjadi kesalahan.';
+                botResponse = data.length > 0 ? (data[0]?.output || data[0]?.text || JSON.stringify(data[0])) : 'Maaf, tidak ada respons.';
+            } else if (typeof data === 'object' && data !== null) {
+                botResponse = data.output || data.text || data.message || 'Maaf, terjadi kesalahan.';
+            } else if (typeof data === 'string') {
+                botResponse = data;
             } else {
-                botResponse = data?.output || 'Maaf, terjadi kesalahan.';
+                botResponse = 'Maaf, terjadi kesalahan.';
             }
 
             // Only create bot message if there's actual content
@@ -745,6 +771,7 @@
             errDiv.className = 'chat-message bot';
             errDiv.textContent = 'Maaf, terjadi kesalahan. Silakan coba lagi.';
             messagesContainer.appendChild(errDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
             console.error('Error:', error);
             
             saveToStorage();
