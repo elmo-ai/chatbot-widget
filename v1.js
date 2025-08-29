@@ -1,4 +1,4 @@
-// Chat Widget Script v2 (Enhanced with improvements)
+// AI Chat Widget - Enhanced Version
 (function() {
     const styles = `
         .n8n-chat-widget {
@@ -18,7 +18,6 @@
             height: 600px;
             background: var(--chat--color-background);
             border-radius: 12px;
-            /* REMOVED: Purple glow/border shadow */
             border: 1px solid rgba(0, 0, 0, 0.1);
             overflow: hidden;
             font-family: inherit;
@@ -52,20 +51,18 @@
             position: relative;
         }
         
-        /* NEW: Status dot */
         .n8n-chat-widget .status-dot {
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background: #22c55e; /* green by default */
+            background: #22c55e;
             margin-left: 8px;
             transition: background-color 0.3s ease;
         }
         .n8n-chat-widget .status-dot.offline {
-            background: #ef4444; /* red for offline */
+            background: #ef4444;
         }
         
-        /* NEW: Mobile fullscreen toggle button */
         .n8n-chat-widget .fullscreen-toggle {
             display: none;
             background: none;
@@ -74,9 +71,10 @@
             cursor: pointer;
             padding: 4px;
             margin-right: 8px;
-            font-size: 16px;
+            font-size: 20px;
             opacity: 0.8;
             transition: opacity 0.2s;
+            line-height: 1;
         }
         .n8n-chat-widget .fullscreen-toggle:hover {
             opacity: 1;
@@ -190,7 +188,6 @@
             flex-direction: column;
         }
         
-        /* NEW: Custom thin scrollbar */
         .n8n-chat-widget .chat-messages::-webkit-scrollbar {
             width: 3px;
         }
@@ -204,7 +201,6 @@
         .n8n-chat-widget .chat-messages::-webkit-scrollbar-thumb:hover {
             background: rgba(133, 79, 255, 0.5);
         }
-        /* Firefox scrollbar */
         .n8n-chat-widget .chat-messages {
             scrollbar-width: thin;
             scrollbar-color: rgba(133, 79, 255, 0.3) transparent;
@@ -336,7 +332,6 @@
             fill: currentColor;
         }
         
-        /* NEW: Unread message counter */
         .n8n-chat-widget .unread-counter {
             position: absolute;
             top: -5px;
@@ -359,14 +354,14 @@
             100% { transform: scale(1); }
         }
         
-        /* Typing indicator */
+        /* FIXED: Better visibility for typing indicator */
         .n8n-chat-widget .typing-indicator {
             display: inline-flex;
             align-items: center;
             gap: 4px;
             padding: 12px 16px;
-            background: var(--chat--color-background);
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            background: var(--n8n-chat-bot-color, #f0f0f0);
+            border: 1px solid rgba(0, 0, 0, 0.2);
             border-radius: 12px;
             align-self: flex-start;
             margin: 8px 0;
@@ -375,19 +370,19 @@
         .n8n-chat-widget .typing-dot {
             width: 6px;
             height: 6px;
-            background-color: var(--chat--color-font);
+            background-color: var(--chat--color-primary);
             border-radius: 50%;
-            opacity: 0.4;
+            opacity: 0.6;
             animation: dotBlink 1.4s infinite;
         }
         .n8n-chat-widget .typing-dot:nth-child(2) { animation-delay: 0.15s; }
         .n8n-chat-widget .typing-dot:nth-child(3) { animation-delay: 0.3s; }
         @keyframes dotBlink {
-            0%, 80%, 100% { opacity: 0.4; }
+            0%, 80%, 100% { opacity: 0.6; }
             40% { opacity: 1; }
         }
         
-        /* Mobile view improvements */
+        /* Mobile responsive */
         @media (max-width: 480px) {
             .n8n-chat-widget .chat-container {
                 width: 90%;
@@ -417,25 +412,27 @@
                 right: auto;
                 left: 16px;
             }
-            /* Show fullscreen toggle only on mobile */
             .n8n-chat-widget .fullscreen-toggle {
                 display: block;
             }
         }
     `;
 
-    // Load Geist font
+    // Load Google Icons and Geist font
     const fontLink = document.createElement('link');
     fontLink.rel = 'stylesheet';
     fontLink.href = 'https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/style.css';
     document.head.appendChild(fontLink);
 
-    // Inject styles
+    const iconLink = document.createElement('link');
+    iconLink.rel = 'stylesheet';
+    iconLink.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
+    document.head.appendChild(iconLink);
+
     const styleSheet = document.createElement('style');
     styleSheet.textContent = styles;
     document.head.appendChild(styleSheet);
 
-    // Default configuration
     const defaultConfig = {
         webhook: {
             url: '',
@@ -456,7 +453,6 @@
         }
     };
 
-    // Merge user config with defaults
     const config = window.ChatWidgetConfig ? 
         {
             webhook: { ...defaultConfig.webhook, ...window.ChatWidgetConfig.webhook },
@@ -464,15 +460,13 @@
             style: { ...defaultConfig.style, ...window.ChatWidgetConfig.style }
         } : defaultConfig;
 
-    // Prevent multiple initializations
     if (window.N8NChatWidgetInitialized) return;
     window.N8NChatWidgetInitialized = true;
 
     let currentSessionId = '';
-    let firstMessageSent = false; // NEW: Track if first message was sent
-    let unreadCount = 0; // NEW: Unread message counter
+    let firstMessageSent = false;
+    let unreadCount = 0;
 
-    // NEW: LocalStorage helpers (will work in production, not in Claude artifacts)
     const STORAGE_KEY = 'n8n_chat_messages';
     const SESSION_KEY = 'n8n_chat_session';
     
@@ -508,11 +502,9 @@
         }
     }
 
-    // Create widget container
     const widgetContainer = document.createElement('div');
     widgetContainer.className = 'n8n-chat-widget';
     
-    // Set CSS variables for colors
     widgetContainer.style.setProperty('--n8n-chat-primary-color', config.style.primaryColor);
     widgetContainer.style.setProperty('--n8n-chat-secondary-color', config.style.secondaryColor);
     widgetContainer.style.setProperty('--n8n-chat-background-color', config.style.backgroundColor);
@@ -536,7 +528,9 @@
                 <div class="status-dot" id="statusDot"></div>
             </div>
             <div class="header-controls">
-                <button class="fullscreen-toggle" id="fullscreenToggle">⛶</button>
+                <button class="fullscreen-toggle" id="fullscreenToggle">
+                    <span class="material-icons">fullscreen</span>
+                </button>
                 <button class="close-button">×</button>
             </div>
         </div>
@@ -546,7 +540,7 @@
                 <svg class="message-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.2L4 17.2V4h16v12z"/>
                 </svg>
-                Send us a message
+                Kirim Pesan
             </button>
             <p class="response-text">${config.branding.responseTimeText}</p>
         </div>
@@ -561,13 +555,15 @@
                     <div class="status-dot" id="statusDotChat"></div>
                 </div>
                 <div class="header-controls">
-                    <button class="fullscreen-toggle" id="fullscreenToggleChat">⛶</button>
+                    <button class="fullscreen-toggle" id="fullscreenToggleChat">
+                        <span class="material-icons">fullscreen</span>
+                    </button>
                     <button class="close-button">×</button>
                 </div>
             </div>
             <div class="chat-messages"></div>
             <div class="chat-input">
-                <textarea placeholder="Type your message here..." rows="1"></textarea>
+                <textarea placeholder="Ketik pesan Anda di sini..." rows="1"></textarea>
                 <button type="submit" class="send-btn">
                     <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF">
                         <path d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z"/>
@@ -605,7 +601,6 @@
 
     function generateUUID() {
         if (crypto && crypto.randomUUID) return crypto.randomUUID();
-        // Fallback
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
@@ -621,7 +616,6 @@
         return indicator;
     }
 
-    // NEW: Update unread counter
     function updateUnreadCounter(increment = true) {
         if (increment && !chatContainer.classList.contains('open')) {
             unreadCount++;
@@ -633,7 +627,6 @@
         }
     }
 
-    // NEW: Status dot management
     function updateStatusDot(online = true) {
         const dots = [document.getElementById('statusDot'), document.getElementById('statusDotChat')];
         dots.forEach(dot => {
@@ -643,17 +636,14 @@
         });
     }
 
-    // NEW: Load saved messages from localStorage
     function loadSavedMessages() {
         const savedMessages = loadFromStorage();
         
         if (savedMessages.length > 0) {
-            // Show chat interface with saved messages
             chatContainer.querySelectorAll('.brand-header')[0].style.display = 'none';
             chatContainer.querySelector('.new-conversation').style.display = 'none';
             chatInterface.classList.add('active');
             
-            // Restore messages
             savedMessages.forEach(msg => {
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `chat-message ${msg.type}`;
@@ -666,28 +656,20 @@
         }
     }
 
-    // MODIFIED: Start new conversation (no immediate fetch)
+    // FIXED: Start conversation without showing welcome message twice
     async function startNewConversation() {
         if (!currentSessionId) {
             currentSessionId = generateUUID();
         }
 
-        // Show chat interface immediately
         chatContainer.querySelectorAll('.brand-header')[0].style.display = 'none';
         chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
 
-        // Show welcome message locally (no fetch yet)
-        if (config.branding.welcomeText) {
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = config.branding.welcomeText;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+        // Don't show welcome message here - it will be shown only after first user message
     }
 
-    // MODIFIED: Send message with delayed first fetch
+    // FIXED: Proper message handling
     async function sendMessage(message) {
         const trimmed = message.trim();
         if (!trimmed) return;
@@ -703,7 +685,6 @@
 
         const typingIndicator = showTypingIndicator();
 
-        // NEW: If this is the first message, initialize session with backend
         let messageData;
         if (!firstMessageSent) {
             messageData = {
@@ -725,7 +706,7 @@
         }
 
         try {
-            updateStatusDot(true); // Show as online
+            updateStatusDot(true);
             
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
@@ -736,56 +717,58 @@
             const data = await response.json();
             typingIndicator.remove();
             
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = Array.isArray(data) ? data[0]?.output : data?.output;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // NEW: Update unread counter if chat is closed
-            updateUnreadCounter();
-            
-            // NEW: Save to localStorage
-            saveToStorage();
+            // FIXED: Better response handling
+            let botResponse = '';
+            if (Array.isArray(data)) {
+                botResponse = data[0]?.output || 'Maaf, terjadi kesalahan.';
+            } else {
+                botResponse = data?.output || 'Maaf, terjadi kesalahan.';
+            }
+
+            // Only create bot message if there's actual content
+            if (botResponse && botResponse.trim()) {
+                const botMessageDiv = document.createElement('div');
+                botMessageDiv.className = 'chat-message bot';
+                botMessageDiv.textContent = botResponse;
+                messagesContainer.appendChild(botMessageDiv);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                updateUnreadCounter();
+                saveToStorage();
+            }
             
         } catch (error) {
             typingIndicator.remove();
-            updateStatusDot(false); // Show as offline
+            updateStatusDot(false);
             
             const errDiv = document.createElement('div');
             errDiv.className = 'chat-message bot';
-            errDiv.textContent = 'Sorry, something went wrong.';
+            errDiv.textContent = 'Maaf, terjadi kesalahan. Silakan coba lagi.';
             messagesContainer.appendChild(errDiv);
             console.error('Error:', error);
             
-            // Still save the error message
             saveToStorage();
         }
     }
 
-    // NEW: Mobile fullscreen toggle
     function toggleMobileFullscreen() {
         chatContainer.classList.toggle('mobile-fullscreen');
         const toggleBtns = [document.getElementById('fullscreenToggle'), document.getElementById('fullscreenToggleChat')];
         toggleBtns.forEach(btn => {
             if (btn) {
-                // ⛶ = go to fullscreen (expand outward)
-                // ⛷ = exit fullscreen (contract inward) 
-                btn.textContent = chatContainer.classList.contains('mobile-fullscreen') ? '⛷' : '⛶';
+                const icon = btn.querySelector('.material-icons');
+                if (icon) {
+                    icon.textContent = chatContainer.classList.contains('mobile-fullscreen') ? 'fullscreen_exit' : 'fullscreen';
+                }
             }
         });
     }
 
-    // NEW: Keyboard shortcuts
     function handleKeyboardShortcuts(e) {
-        // ESC to close chat
         if (e.key === 'Escape' && chatContainer.classList.contains('open')) {
             e.preventDefault();
             chatContainer.classList.remove('open');
         }
-        
-        // Additional shortcuts can be added here
-        // e.g., Ctrl+/ to open chat, etc.
     }
 
     // Event Listeners
@@ -808,13 +791,11 @@
     
     toggleButton.addEventListener('click', () => {
         chatContainer.classList.toggle('open');
-        // NEW: Clear unread counter when opening
         if (chatContainer.classList.contains('open')) {
             updateUnreadCounter(false);
         }
     });
 
-    // Add close button handlers
     const closeButtons = chatContainer.querySelectorAll('.close-button');
     closeButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -822,7 +803,6 @@
         });
     });
 
-    // NEW: Mobile fullscreen toggle handlers
     const fullscreenToggles = [document.getElementById('fullscreenToggle'), document.getElementById('fullscreenToggleChat')];
     fullscreenToggles.forEach(button => {
         if (button) {
@@ -830,25 +810,21 @@
         }
     });
 
-    // NEW: Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
 
     // Initialize widget
     window.addEventListener('DOMContentLoaded', () => {
         loadSavedMessages();
-        updateStatusDot(true); // Start as online
+        updateStatusDot(true);
     });
 
-    // If DOM is already loaded
     if (document.readyState === 'loading') {
-        // Do nothing, wait for DOMContentLoaded
+        // Wait for DOMContentLoaded
     } else {
-        // DOM is already loaded
         loadSavedMessages();
         updateStatusDot(true);
     }
 
-    // NEW: Optional status checking (ping webhook periodically)
     function checkOnlineStatus() {
         if (!config.webhook.url) return;
         
@@ -860,10 +836,8 @@
         .catch(() => updateStatusDot(false));
     }
 
-    // Check status every 30 seconds
     setInterval(checkOnlineStatus, 30000);
 
-    // NEW: Clear old messages (optional cleanup - keep only last 100 messages)
     function cleanupOldMessages() {
         try {
             const messages = loadFromStorage();
@@ -876,10 +850,9 @@
         }
     }
 
-    // Cleanup on page load
     cleanupOldMessages();
 
-    // NEW: Add method to clear chat history (can be called externally)
+    // Public API
     window.N8NChatWidget = {
         clearHistory: function() {
             try {
@@ -890,7 +863,6 @@
                 firstMessageSent = false;
                 updateUnreadCounter(false);
                 
-                // Return to welcome screen
                 chatInterface.classList.remove('active');
                 chatContainer.querySelectorAll('.brand-header')[0].style.display = 'flex';
                 chatContainer.querySelector('.new-conversation').style.display = 'block';
