@@ -1,4 +1,4 @@
-// AI Chat Widget - Enhanced Version
+// AI Chat Widget - Enhanced Version (FIXED)
 (function() {
     const styles = `
         .n8n-chat-widget {
@@ -664,7 +664,7 @@
         }
     }
 
-    // FIXED: Start conversation with proper welcome message flow
+    // FIXED: Start conversation without automatic welcome message
     async function startNewConversation() {
         if (!currentSessionId) {
             currentSessionId = generateUUID();
@@ -673,21 +673,12 @@
         chatContainer.querySelectorAll('.brand-header')[0].style.display = 'none';
         chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
-
-        // Show the welcome message immediately when starting new conversation
-        const welcomeMessage = config.branding.welcomeText;
-        if (welcomeMessage) {
-            const botMessageDiv = document.createElement('div');
-            botMessageDiv.className = 'chat-message bot';
-            botMessageDiv.textContent = welcomeMessage;
-            messagesContainer.appendChild(botMessageDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            updateUnreadCounter();
-            saveToStorage();
-        }
+        
+        // Don't send automatic welcome message - let the user send the first message
+        // The firstMessageSent flag will remain false until the user actually sends a message
     }
 
-    // FIXED: Proper message handling with better error handling
+    // FIXED: Proper message handling with corrected response processing
     async function sendMessage(message) {
         const trimmed = message.trim();
         if (!trimmed) return;
@@ -703,6 +694,7 @@
 
         const typingIndicator = showTypingIndicator();
 
+        // FIXED: Better action determination
         let messageData;
         if (!firstMessageSent) {
             messageData = {
@@ -712,7 +704,6 @@
                 chatInput: trimmed,
                 metadata: { userId: "" }
             };
-            firstMessageSent = true;
         } else {
             messageData = {
                 action: "sendMessage",
@@ -728,15 +719,36 @@
             
             const response = await fetch(config.webhook.url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
                 body: JSON.stringify(messageData)
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
             }
             
-            const data = await response.json();
+            // FIXED: Better response parsing with proper content type handling
+            let data;
+            const contentType = response.headers.get("content-type");
+            
+            if (contentType && contentType.includes("application/json")) {
+                data = await response.json();
+            } else {
+                // Handle non-JSON responses
+                const textData = await response.text();
+                console.warn('Received non-JSON response:', textData);
+                // Try to parse as JSON anyway in case content-type header is missing
+                try {
+                    data = JSON.parse(textData);
+                } catch (e) {
+                    // If it's not JSON, treat the text as the bot response
+                    data = { output: textData };
+                }
+            }
+            
             typingIndicator.remove();
             
             // Debug logging
@@ -744,7 +756,7 @@
             console.log('Response type:', typeof data);
             console.log('Is array:', Array.isArray(data));
             
-            // IMPROVED: Enhanced response handling for n8n webhooks
+            // FIXED: Enhanced response handling for n8n webhooks
             let botResponse = '';
             
             // Function to extract response from various possible structures
@@ -753,64 +765,93 @@
                     return item.trim();
                 }
                 if (typeof item === 'object' && item !== null) {
-                    return item.output || 
-                           item.text || 
-                           item.message || 
-                           item.response || 
-                           item.reply || 
-                           item.content ||
-                           item.body?.output ||
-                           item.body?.text ||
-                           item.body?.message ||
-                           '';
+                    // Check multiple possible response fields
+                    const possibleFields = [
+                        'output', 'text', 'message', 'response', 'reply', 'content', 'answer',
+                        'body.output', 'body.text', 'body.message', 'data.output', 'data.text'
+                    ];
+                    
+                    for (const field of possibleFields) {
+                        const value = getNestedProperty(item, field);
+                        if (value && typeof value === 'string' && value.trim()) {
+                            return value.trim();
+                        }
+                    }
                 }
                 return '';
             }
             
+            // Helper function to get nested object properties
+            function getNestedProperty(obj, path) {
+                return path.split('.').reduce((current, key) => {
+                    return current && current[key] !== undefined ? current[key] : undefined;
+                }, obj);
+            }
+            
+            // FIXED: More comprehensive response extraction
             if (Array.isArray(data)) {
-                // Direct array response
+                // Handle array responses
                 if (data.length > 0) {
-                    botResponse = extractResponse(data[0]);
+                    // Try first non-empty response from array
+                    for (const item of data) {
+                        const extracted = extractResponse(item);
+                        if (extracted) {
+                            botResponse = extracted;
+                            break;
+                        }
+                    }
                 }
             } else if (typeof data === 'object' && data !== null) {
-                // Check if it's a wrapper object with data array
+                // Handle object responses
                 if (data.data && Array.isArray(data.data)) {
-                    if (data.data.length > 0) {
-                        botResponse = extractResponse(data.data[0]);
+                    // Wrapper object with data array
+                    for (const item of data.data) {
+                        const extracted = extractResponse(item);
+                        if (extracted) {
+                            botResponse = extracted;
+                            break;
+                        }
                     }
                 } else {
                     // Direct object response
                     botResponse = extractResponse(data);
                 }
-            } else if (typeof data === 'string') {
+            } else if (typeof data === 'string' && data.trim()) {
+                // Direct string response
                 botResponse = data.trim();
             }
             
-            // Fallback if no response found
+            // FIXED: Set firstMessageSent flag here, after successful response
+            if (!firstMessageSent) {
+                firstMessageSent = true;
+            }
+            
+            // FIXED: Better fallback handling
             if (!botResponse || botResponse.trim() === '') {
                 console.warn('Empty or invalid response received:', data);
-                // For the first message specifically, don't show an error if it's just an empty data array
-                // This might be expected behavior for session initialization
-                if (!firstMessageSent && data.data && Array.isArray(data.data) && data.data.length === 0) {
-                    // Skip creating a bot message for empty initialization response
-                    console.log('Skipping empty initialization response');
-                    return;
+                
+                // Check if this might be an initialization response (empty data array)
+                if (Array.isArray(data) && data.length === 0) {
+                    // For empty initialization responses, send a generic greeting
+                    botResponse = 'Halo! Ada yang bisa saya bantu?';
+                } else if (data && typeof data === 'object' && data.data && Array.isArray(data.data) && data.data.length === 0) {
+                    // Empty data wrapper
+                    botResponse = 'Halo! Ada yang bisa saya bantu?';
                 } else {
-                    botResponse = 'Maaf, tidak ada respons dari server.';
+                    // Other empty responses
+                    botResponse = 'Maaf, saya tidak mendapat respons yang valid. Silakan coba lagi.';
                 }
             }
 
-            // Only create bot message if there's actual content
-            if (botResponse && botResponse.trim()) {
-                const botMessageDiv = document.createElement('div');
-                botMessageDiv.className = 'chat-message bot';
-                botMessageDiv.textContent = botResponse;
-                messagesContainer.appendChild(botMessageDiv);
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                
-                updateUnreadCounter();
-                saveToStorage();
-            }
+            // Create and display bot message
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.textContent = botResponse;
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            updateUnreadCounter();
+            saveToStorage();
             
         } catch (error) {
             typingIndicator.remove();
@@ -836,6 +877,8 @@
                 errorMessage = 'Maaf, layanan tidak ditemukan.';
             } else if (error.message.includes('500')) {
                 errorMessage = 'Maaf, terjadi kesalahan di server.';
+            } else if (error.message.includes('CORS')) {
+                errorMessage = 'Maaf, terjadi masalah dengan konfigurasi server.';
             }
             
             const errDiv = document.createElement('div');
@@ -873,7 +916,7 @@
     
     sendButton.addEventListener('click', () => {
         const message = textarea.value;
-        if (message) sendMessage(message);
+        if (message.trim()) sendMessage(message);
     });
     
     textarea.addEventListener('input', () => autoResizeTextarea(textarea));
@@ -882,7 +925,7 @@
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
             const message = textarea.value;
-            if (message) sendMessage(message);
+            if (message.trim()) sendMessage(message);
         }
     });
     
@@ -890,6 +933,8 @@
         chatContainer.classList.toggle('open');
         if (chatContainer.classList.contains('open')) {
             updateUnreadCounter(false);
+            // Focus on textarea when chat opens
+            setTimeout(() => textarea.focus(), 100);
         }
     });
 
@@ -910,30 +955,44 @@
     document.addEventListener('keydown', handleKeyboardShortcuts);
 
     // Initialize widget
-    window.addEventListener('DOMContentLoaded', () => {
+    function initializeWidget() {
         loadSavedMessages();
         updateStatusDot(true);
-    });
-
-    if (document.readyState === 'loading') {
-        // Wait for DOMContentLoaded
-    } else {
-        loadSavedMessages();
-        updateStatusDot(true);
+        
+        // FIXED: Ensure proper state after loading
+        if (messagesContainer.children.length > 0) {
+            firstMessageSent = true;
+        }
     }
 
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', initializeWidget);
+    } else {
+        initializeWidget();
+    }
+
+    // FIXED: Better connection checking
     function checkOnlineStatus() {
         if (!config.webhook.url) return;
         
+        // Use a simple GET request to check connectivity
         fetch(config.webhook.url, {
-            method: 'HEAD',
-            mode: 'no-cors'
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
         })
-        .then(() => updateStatusDot(true))
+        .then(response => {
+            updateStatusDot(response.ok || response.status < 500);
+        })
         .catch(() => updateStatusDot(false));
     }
 
+    // Check connection status every 30 seconds
     setInterval(checkOnlineStatus, 30000);
+    
+    // Initial connection check after 2 seconds
+    setTimeout(checkOnlineStatus, 2000);
 
     function cleanupOldMessages() {
         try {
@@ -974,6 +1033,7 @@
             chatContainer.classList.toggle('open');
             if (chatContainer.classList.contains('open')) {
                 updateUnreadCounter(false);
+                setTimeout(() => textarea.focus(), 100);
             }
         },
         
@@ -983,6 +1043,38 @@
         
         getUnreadCount: function() {
             return unreadCount;
+        },
+        
+        // FIXED: Added debug methods
+        getSessionId: function() {
+            return currentSessionId;
+        },
+        
+        isFirstMessage: function() {
+            return !firstMessageSent;
+        },
+        
+        testWebhook: function() {
+            return fetch(config.webhook.url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: "test",
+                    sessionId: "test-session",
+                    route: config.webhook.route,
+                    chatInput: "test message",
+                    metadata: { userId: "" }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Webhook test response:', data);
+                return data;
+            })
+            .catch(error => {
+                console.error('Webhook test failed:', error);
+                throw error;
+            });
         }
     };
 
