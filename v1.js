@@ -664,7 +664,7 @@
         }
     }
 
-    // FIXED: Start conversation without automatic welcome message
+    // FIXED: Start conversation with proper welcome message flow
     async function startNewConversation() {
         if (!currentSessionId) {
             currentSessionId = generateUUID();
@@ -673,9 +673,21 @@
         chatContainer.querySelectorAll('.brand-header')[0].style.display = 'none';
         chatContainer.querySelector('.new-conversation').style.display = 'none';
         chatInterface.classList.add('active');
+
+        // Show the welcome message immediately when starting new conversation
+        const welcomeMessage = config.branding.welcomeText || 'Halo! Ada yang bisa saya bantu?';
+        if (welcomeMessage) {
+            const botMessageDiv = document.createElement('div');
+            botMessageDiv.className = 'chat-message bot';
+            botMessageDiv.textContent = welcomeMessage;
+            messagesContainer.appendChild(botMessageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            updateUnreadCounter();
+            saveToStorage();
+        }
         
-        // Don't send automatic welcome message - let the user send the first message
-        // The firstMessageSent flag will remain false until the user actually sends a message
+        // Focus on textarea for better UX
+        setTimeout(() => textarea.focus(), 100);
     }
 
     // FIXED: Proper message handling with corrected response processing
@@ -694,25 +706,14 @@
 
         const typingIndicator = showTypingIndicator();
 
-        // FIXED: Better action determination
-        let messageData;
-        if (!firstMessageSent) {
-            messageData = {
-                action: "loadPreviousSession",
-                sessionId: currentSessionId,
-                route: config.webhook.route,
-                chatInput: trimmed,
-                metadata: { userId: "" }
-            };
-        } else {
-            messageData = {
-                action: "sendMessage",
-                sessionId: currentSessionId,
-                route: config.webhook.route,
-                chatInput: trimmed,
-                metadata: { userId: "" }
-            };
-        }
+        // FIXED: Better action determination - always use sendMessage for user-initiated messages
+        let messageData = {
+            action: firstMessageSent ? "sendMessage" : "loadPreviousSession",
+            sessionId: currentSessionId,
+            route: config.webhook.route,
+            chatInput: trimmed,
+            metadata: { userId: "" }
+        };
 
         try {
             updateStatusDot(true);
@@ -821,26 +822,22 @@
                 botResponse = data.trim();
             }
             
-            // FIXED: Set firstMessageSent flag here, after successful response
-            if (!firstMessageSent) {
-                firstMessageSent = true;
-            }
-            
             // FIXED: Better fallback handling
             if (!botResponse || botResponse.trim() === '') {
                 console.warn('Empty or invalid response received:', data);
                 
-                // Check if this might be an initialization response (empty data array)
-                if (Array.isArray(data) && data.length === 0) {
-                    // For empty initialization responses, send a generic greeting
-                    botResponse = 'Halo! Ada yang bisa saya bantu?';
-                } else if (data && typeof data === 'object' && data.data && Array.isArray(data.data) && data.data.length === 0) {
-                    // Empty data wrapper
-                    botResponse = 'Halo! Ada yang bisa saya bantu?';
+                // For first messages with empty responses, provide a helpful fallback
+                if (!firstMessageSent) {
+                    botResponse = 'Terima kasih sudah menghubungi kami. Ada yang bisa saya bantu?';
                 } else {
-                    // Other empty responses
+                    // For subsequent messages
                     botResponse = 'Maaf, saya tidak mendapat respons yang valid. Silakan coba lagi.';
                 }
+            }
+
+            // FIXED: Set firstMessageSent flag AFTER processing the first user message
+            if (!firstMessageSent) {
+                firstMessageSent = true;
             }
 
             // Create and display bot message
