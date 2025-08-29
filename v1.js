@@ -739,16 +739,56 @@
             const data = await response.json();
             typingIndicator.remove();
             
-            // FIXED: Better response handling with fallback
+            // Debug logging - will be visible in browser console
+            console.log('Webhook response:', data);
+            console.log('Response type:', typeof data);
+            console.log('Is array:', Array.isArray(data));
+            
+            // FIXED: Comprehensive response handling for n8n webhooks
             let botResponse = '';
+            
+            // Handle different n8n response formats
             if (Array.isArray(data)) {
-                botResponse = data.length > 0 ? (data[0]?.output || data[0]?.text || JSON.stringify(data[0])) : 'Maaf, tidak ada respons.';
+                if (data.length > 0) {
+                    const firstItem = data[0];
+                    // Try multiple possible fields that n8n might use
+                    botResponse = firstItem?.output || 
+                                firstItem?.text || 
+                                firstItem?.message || 
+                                firstItem?.response || 
+                                firstItem?.reply || 
+                                firstItem?.content ||
+                                firstItem?.body?.output ||
+                                firstItem?.body?.text ||
+                                firstItem?.body?.message ||
+                                (typeof firstItem === 'string' ? firstItem : '') ||
+                                'Maaf, tidak ada respons.';
+                } else {
+                    botResponse = 'Maaf, tidak ada respons.';
+                }
             } else if (typeof data === 'object' && data !== null) {
-                botResponse = data.output || data.text || data.message || 'Maaf, terjadi kesalahan.';
+                // Handle object responses
+                botResponse = data.output || 
+                            data.text || 
+                            data.message || 
+                            data.response || 
+                            data.reply || 
+                            data.content ||
+                            data.body?.output ||
+                            data.body?.text ||
+                            data.body?.message ||
+                            'Maaf, terjadi kesalahan dalam memproses respons.';
             } else if (typeof data === 'string') {
                 botResponse = data;
             } else {
-                botResponse = 'Maaf, terjadi kesalahan.';
+                console.warn('Unexpected response format:', data);
+                botResponse = 'Maaf, format respons tidak dikenali.';
+            }
+            
+            // Additional check if response is empty or just whitespace
+            if (!botResponse || botResponse.trim() === '') {
+                console.warn('Empty response received');
+                botResponse = 'Maaf, respons kosong dari server.';
             }
 
             // Only create bot message if there's actual content
@@ -767,12 +807,33 @@
             typingIndicator.remove();
             updateStatusDot(false);
             
+            // Enhanced error logging
+            console.error('Webhook Error Details:', {
+                error: error,
+                message: error.message,
+                stack: error.stack,
+                webhookUrl: config.webhook.url,
+                messageData: messageData
+            });
+            
+            let errorMessage = 'Maaf, terjadi kesalahan. Silakan coba lagi.';
+            
+            // Provide more specific error messages based on error type
+            if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                errorMessage = 'Maaf, tidak dapat terhubung ke server. Periksa koneksi internet Anda.';
+            } else if (error.message.includes('JSON')) {
+                errorMessage = 'Maaf, respons server tidak valid.';
+            } else if (error.message.includes('404')) {
+                errorMessage = 'Maaf, layanan tidak ditemukan.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Maaf, terjadi kesalahan di server.';
+            }
+            
             const errDiv = document.createElement('div');
             errDiv.className = 'chat-message bot';
-            errDiv.textContent = 'Maaf, terjadi kesalahan. Silakan coba lagi.';
+            errDiv.textContent = errorMessage;
             messagesContainer.appendChild(errDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            console.error('Error:', error);
             
             saveToStorage();
         }
